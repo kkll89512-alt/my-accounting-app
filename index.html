@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>今日路線 · ERP顧問排程表</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700;900&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#151E27;
+    --ink-2:#1E2A35;
+    --paper:#EEEAE0;
+    --paper-2:#E4DFD1;
+    --amber:#D98E3F;
+    --amber-dim:#8C5F2C;
+    --green:#4F7A5A;
+    --coral:#BD5B3F;
+    --line:#B9B2A0;
+    --text-dark:#1B2430;
+    --text-light:#EDEAE1;
+    --text-mute:#8B96A0;
+    --font-display:'Noto Serif TC', serif;
+    --font-body:'Noto Sans TC', sans-serif;
+    --font-mono:'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    font-family:var(--font-body);
+    color:var(--text-light);
+    min-height:100vh;
+  }
+  .app{
+    display:grid;
+    grid-template-columns:280px 1fr;
+    min-height:100vh;
+  }
+  @media (max-width:860px){
+    .app{grid-template-columns:1fr;}
+  }
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{
+    background:linear-gradient(180deg,var(--ink) 0%,var(--ink-2) 100%);
+    padding:28px 22px;
+    border-right:1px solid #2A3844;
+    display:flex;
+    flex-direction:column;
+    gap:26px;
+    position:sticky;
+    top:0;
+    align-self:start;
+    max-height:100vh;
+    overflow-y:auto;
+    scrollbar-width:thin;
+    scrollbar-color:#3A4854 var(--ink);
+  }
+  @media (max-width:860px){
+    .sidebar{ position:relative; max-height:none; overflow-y:visible; }
+  }
+  .brand{
+    display:flex; flex-direction:column; gap:2px;
+  }
+  .brand .eyebrow{
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:.18em;
+    color:var(--amber);
+    text-transform:uppercase;
+  }
+  .brand h1{
+    font-family:var(--font-display);
+    font-weight:900;
+    font-size:22px;
+    margin:2px 0 0;
+    color:var(--text-light);
+    line-height:1.3;
+  }
+
+  .side-block{
+    background:rgba(255,255,255,0.03);
+    border:1px solid #2A3844;
+    border-radius:10px;
+    padding:16px;
+  }
+  .side-block h2{
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--text-mute);
+    margin:0 0 12px;
+  }
+
+  .mini-cal{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:4px;
+  }
+  .mini-cal .d{
+    font-family:var(--font-mono);
+    font-size:11px;
+    text-align:center;
+    color:var(--text-mute);
+    padding:4px 0;
+  }
+  .mini-cal button{
+    font-family:var(--font-mono);
+    font-size:12px;
+    background:transparent;
+    border:1px solid transparent;
+    color:var(--text-light);
+    border-radius:6px;
+    padding:6px 0;
+    cursor:pointer;
+  }
+  .mini-cal button:hover{border-color:var(--amber-dim);}
+  .mini-cal button.today{border-color:var(--amber); color:var(--amber);}
+  .mini-cal button.sel{background:var(--amber); color:#1B2430; font-weight:700;}
+  .mini-cal button.empty{visibility:hidden; cursor:default;}
+
+  .stat-row{
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding:6px 0;
+    border-bottom:1px dashed #2A3844;
+    font-size:13px;
+  }
+  .stat-row:last-child{border-bottom:none;}
+  .stat-row .num{
+    font-family:var(--font-mono);
+    font-size:17px;
+    color:var(--amber);
+    font-weight:600;
+  }
+
+  .nav-buttons{display:flex; flex-direction:column; gap:8px; margin-top:auto;}
+  .nav-btn{
+    font-family:var(--font-body);
+    background:var(--amber);
+    color:#1B2430;
+    border:none;
+    border-radius:8px;
+    padding:12px 14px;
+    font-weight:700;
+    font-size:14px;
+    cursor:pointer;
+    text-align:left;
+    display:flex; align-items:center; gap:8px;
+  }
+  .nav-btn.secondary{
+    background:transparent;
+    border:1px solid #3A4854;
+    color:var(--text-light);
+  }
+  .nav-btn:hover{filter:brightness(1.08);}
+
+  /* ---------- MAIN / TICKET ---------- */
+  main{
+    padding:36px 5vw 60px;
+    display:flex;
+    justify-content:center;
+  }
+  .ticket{
+    background:var(--paper);
+    color:var(--text-dark);
+    width:100%;
+    max-width:760px;
+    border-radius:14px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.55);
+    overflow:hidden;
+  }
+  .ticket-head{
+    padding:26px 30px 20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    border-bottom:2px solid var(--text-dark);
+  }
+  .ticket-head .date-nav{
+    display:flex; align-items:center; gap:10px;
+  }
+  .date-nav button{
+    background:none; border:1px solid var(--text-dark);
+    color:var(--text-dark); border-radius:6px;
+    width:28px; height:28px; cursor:pointer; font-size:14px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .date-nav button:hover{background:var(--text-dark); color:var(--paper);}
+  .ticket-head .eyebrow{
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:.16em;
+    color:var(--amber-dim);
+    text-transform:uppercase;
+  }
+  .ticket-head h2{
+    font-family:var(--font-display);
+    font-weight:900;
+    font-size:30px;
+    margin:4px 0 0;
+  }
+  .ticket-head .weekday{
+    font-family:var(--font-mono);
+    font-size:13px;
+    color:#6b6455;
+  }
+  .add-stop-btn{
+    background:var(--text-dark);
+    color:var(--paper);
+    border:none;
+    border-radius:8px;
+    padding:10px 16px;
+    font-weight:700;
+    font-size:13px;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .add-stop-btn:hover{background:var(--amber-dim);}
+
+  .perf{
+    height:14px;
+    background:
+      radial-gradient(circle at 8px 7px, var(--ink) 6px, transparent 7px) repeat-x;
+    background-size:24px 14px;
+    position:relative;
+  }
+  .perf::before, .perf::after{
+    content:"";
+    position:absolute; top:0; width:14px; height:14px;
+    background:var(--ink); border-radius:50%;
+  }
+  .perf::before{left:-7px;}
+  .perf::after{right:-7px;}
+
+  .stops{
+    padding:6px 30px 10px;
+    display:flex;
+    flex-direction:column;
+  }
+  .empty-day{
+    padding:40px 10px;
+    text-align:center;
+    color:#8a8371;
+  }
+  .empty-day .big{
+    font-family:var(--font-display);
+    font-size:20px;
+    color:var(--text-dark);
+    margin-bottom:6px;
+  }
+
+  .stop{
+    display:grid;
+    grid-template-columns:70px 1fr auto;
+    gap:14px;
+    align-items:flex-start;
+    padding:18px 0;
+    border-bottom:1px dashed var(--line);
+    position:relative;
+  }
+  .stop:last-child{border-bottom:none;}
+  .stop .time{
+    font-family:var(--font-mono);
+    font-size:16px;
+    font-weight:600;
+    padding-top:2px;
+  }
+  .stop .body .top-row{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  }
+  .stop .client{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:17px;
+  }
+  .tag{
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    letter-spacing:.06em;
+    padding:2px 8px;
+    border-radius:20px;
+    text-transform:uppercase;
+    font-weight:600;
+  }
+  .tag.onsite{background:#E6D3B5; color:#7A4E1D;}
+  .tag.online{background:#CFE0DC; color:#2C5C4F;}
+  .tag.training{background:#DDD4E8; color:#4E3B72;}
+  .tag.chore{background:#DCE3D0; color:#40521F;}
+  .stop .note{
+    font-size:13px;
+    color:#5c5648;
+    margin-top:4px;
+    line-height:1.5;
+  }
+  .stop.done .client, .stop.done .note{ opacity:.5; text-decoration:line-through; }
+  .stop-actions{
+    display:flex; gap:6px; align-items:flex-start;
+  }
+  .icon-btn{
+    background:none; border:1px solid var(--line);
+    width:30px; height:30px; border-radius:6px;
+    cursor:pointer; font-size:14px;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--text-dark);
+  }
+  .icon-btn:hover{border-color:var(--text-dark);}
+  .icon-btn.stamped{background:var(--green); border-color:var(--green); color:#fff;}
+  .icon-btn.del:hover{background:var(--coral); border-color:var(--coral); color:#fff;}
+
+  .stamp{
+    position:absolute; right:44px; top:14px;
+    font-family:var(--font-mono);
+    font-weight:700; font-size:12px;
+    color:var(--green);
+    border:2px solid var(--green);
+    border-radius:6px;
+    padding:2px 8px;
+    transform:rotate(-8deg);
+    opacity:.85;
+    letter-spacing:.05em;
+  }
+
+  .training-section{
+    padding:20px 30px 30px;
+  }
+  .training-section h3{
+    font-family:var(--font-display);
+    font-size:16px;
+    margin:0 0 12px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .filter-row{
+    display:flex; gap:6px; margin-bottom:12px;
+  }
+  .filter-btn{
+    font-family:var(--font-body);
+    font-size:12px;
+    background:transparent;
+    border:1px solid var(--line);
+    color:#6b6455;
+    border-radius:20px;
+    padding:6px 12px;
+    cursor:pointer;
+  }
+  .filter-btn.active{
+    background:var(--text-dark);
+    border-color:var(--text-dark);
+    color:var(--paper);
+    font-weight:700;
+  }
+  .training-item{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 12px;
+    background:var(--paper-2);
+    border-radius:8px;
+    margin-bottom:8px;
+  }
+  .training-item.done{opacity:.55;}
+  .training-item .t-title{flex:1; font-size:13.5px;}
+  .training-item.done .t-title{text-decoration:line-through;}
+  .training-add{
+    display:flex; gap:8px; margin-top:10px;
+  }
+  .training-add select{
+    font-family:var(--font-body);
+    font-size:13px;
+    padding:9px 8px;
+    border-radius:6px;
+    border:1px solid var(--line);
+    background:#fff;
+    max-width:130px;
+  }
+  .training-add input{
+    flex:1;
+    font-family:var(--font-body);
+    padding:9px 10px;
+    border-radius:6px;
+    border:1px solid var(--line);
+    background:#fff;
+    font-size:13px;
+  }
+  .training-add button{
+    background:var(--text-dark); color:var(--paper);
+    border:none; border-radius:6px; padding:0 14px;
+    font-size:13px; font-weight:700; cursor:pointer;
+  }
+
+  /* ---------- MODAL ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(10,14,18,0.6);
+    display:none; align-items:center; justify-content:center; z-index:50;
+    padding:16px;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal{
+    background:var(--paper); color:var(--text-dark);
+    width:100%; max-width:420px;
+    border-radius:12px; padding:26px;
+  }
+  .modal h3{
+    font-family:var(--font-display); margin:0 0 18px; font-size:20px;
+  }
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block; font-family:var(--font-mono); font-size:11px;
+    text-transform:uppercase; letter-spacing:.08em; color:#7a7461; margin-bottom:5px;
+  }
+  .field input, .field select, .field textarea{
+    width:100%; padding:9px 10px; border-radius:6px;
+    border:1px solid var(--line); font-family:var(--font-body);
+    font-size:14px; background:#fff;
+  }
+  .type-choice{display:flex; gap:8px;}
+  .type-choice label{
+    flex:1; display:flex; align-items:center; justify-content:center;
+    border:1px solid var(--line); border-radius:6px; padding:9px 4px;
+    cursor:pointer; font-size:12.5px; gap:6px; text-transform:none;
+    letter-spacing:0; font-family:var(--font-body); color:var(--text-dark);
+  }
+  .type-choice input{width:auto; margin:0;}
+  .modal-actions{
+    display:flex; justify-content:flex-end; gap:10px; margin-top:18px;
+  }
+  .modal-actions button{
+    padding:10px 18px; border-radius:6px; border:none;
+    font-weight:700; font-size:13.5px; cursor:pointer;
+  }
+  .btn-cancel{background:transparent; border:1px solid var(--line) !important; color:var(--text-dark);}
+  .btn-save{background:var(--amber); color:#1B2430;}
+
+  .tasklist{margin-top:10px; display:flex; flex-direction:column; gap:6px;}
+  .task-row{display:flex; align-items:center; gap:8px; font-size:12.5px;}
+  .task-row .tchk{
+    width:18px; height:18px; border-radius:4px; flex-shrink:0;
+    border:1px solid var(--line); background:#fff; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; color:#fff; padding:0;
+  }
+  .task-row .tchk.on{background:var(--green); border-color:var(--green);}
+  .task-row .tlabel{flex:1; color:#4a4536;}
+  .task-row.done .tlabel{text-decoration:line-through; opacity:.5;}
+  .task-row .tdue{
+    font-family:var(--font-mono); font-size:10.5px; padding:2px 7px;
+    border-radius:10px; background:#EDE7D8; color:#7a7461; flex-shrink:0;
+  }
+  .task-row .tdue.overdue{background:var(--coral); color:#fff;}
+  .task-row .tdue.today{background:var(--amber); color:#1B2430;}
+  .task-row .tdel{background:none; border:none; color:#b3ab97; cursor:pointer; font-size:12px; padding:0 2px; flex-shrink:0;}
+  .task-row .tdel:hover{color:var(--coral);}
+  .task-row .tcopy{
+    background:none; border:1px solid var(--line); color:#7a7461; cursor:pointer;
+    font-size:11px; padding:2px 6px; border-radius:5px; flex-shrink:0;
+  }
+  .task-row .tcopy:hover{border-color:var(--amber-dim); color:var(--amber-dim);}
+
+  .field-hint{
+    font-size:11.5px; color:#7a7461; margin-top:8px; line-height:1.55;
+    background:var(--paper-2); padding:8px 10px; border-radius:6px;
+  }
+
+  .reminder-item{
+    display:flex; gap:8px; align-items:flex-start; padding:8px 0;
+    border-bottom:1px dashed #2A3844; font-size:12.5px;
+  }
+  .reminder-item:last-child{border-bottom:none;}
+  .reminder-item .rchk{
+    width:18px; height:18px; border-radius:4px; margin-top:1px; flex-shrink:0;
+    border:1px solid #3A4854; background:transparent; cursor:pointer;
+    color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .reminder-item .rchk:hover{border-color:var(--green);}
+  .reminder-item .rbody{flex:1; cursor:pointer;}
+  .reminder-item .rclient{font-weight:700; color:var(--text-light); display:block;}
+  .reminder-item .rlabel{color:var(--text-mute); display:block; margin-top:1px;}
+  .reminder-item .rdate{
+    font-family:var(--font-mono); font-size:10.5px; margin-top:3px; display:inline-block;
+    padding:1px 7px; border-radius:10px; background:#2A3844; color:var(--text-mute);
+  }
+  .reminder-item .rdate.overdue{background:var(--coral); color:#fff;}
+  .reminder-item .rdate.today{background:var(--amber); color:#1B2430;}
+  .reminder-empty{color:var(--text-mute); font-size:12.5px; padding:4px 0; line-height:1.6;}
+
+  .template-quick-item{
+    display:flex; align-items:center; gap:8px; padding:7px 0;
+    border-bottom:1px dashed #2A3844; font-size:12.5px;
+  }
+  .template-quick-item:last-child{border-bottom:none;}
+  .template-quick-item .tname{flex:1; color:var(--text-light);}
+  .template-quick-item button{
+    background:none; border:1px solid #3A4854; color:var(--text-light);
+    border-radius:6px; width:26px; height:26px; cursor:pointer; font-size:12px; flex-shrink:0;
+  }
+  .template-quick-item button:hover{border-color:var(--amber);}
+  .template-empty-side{color:var(--text-mute); font-size:12px; padding:4px 0; line-height:1.6;}
+
+  .tpl-row{
+    display:flex; align-items:flex-start; gap:10px; padding:12px;
+    background:var(--paper-2); border-radius:8px; margin-bottom:10px;
+  }
+  .tpl-row .tpl-main{flex:1; min-width:0;}
+  .tpl-row .tpl-name{
+    font-family:var(--font-display); font-weight:700; font-size:15px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .tpl-row .tpl-subject{font-size:12.5px; color:#5c5648; margin-top:3px;}
+  .tpl-row .tpl-preview{
+    font-size:12px; color:#8a8371; margin-top:5px; line-height:1.5;
+    max-height:36px; overflow:hidden;
+  }
+  .tpl-actions{display:flex; flex-direction:column; gap:6px; flex-shrink:0;}
+  .tpl-actions .icon-btn{width:30px; height:30px;}
+  .tpl-add-btn{
+    width:100%; background:var(--text-dark); color:var(--paper);
+    border:none; border-radius:8px; padding:12px; font-weight:700;
+    font-size:13.5px; cursor:pointer; margin-top:4px;
+  }
+
+  .client-quick-item{
+    display:flex; align-items:center; gap:8px; padding:7px 0;
+    border-bottom:1px dashed #2A3844; font-size:12.5px;
+  }
+  .client-quick-item:last-child{border-bottom:none;}
+  .client-quick-item .cname{flex:1; color:var(--text-light); min-width:0;}
+  .client-quick-item .cname .cphone{display:block; color:var(--text-mute); font-family:var(--font-mono); font-size:10.5px; margin-top:1px;}
+  .client-quick-item button{
+    background:none; border:1px solid #3A4854; color:var(--text-light);
+    border-radius:6px; width:26px; height:26px; cursor:pointer; font-size:12px; flex-shrink:0;
+  }
+  .client-quick-item button:hover{border-color:var(--amber);}
+  .client-empty-side{color:var(--text-mute); font-size:12px; padding:4px 0; line-height:1.6;}
+
+  .client-row{
+    display:flex; align-items:flex-start; gap:10px; padding:12px;
+    background:var(--paper-2); border-radius:8px; margin-bottom:10px;
+  }
+  .client-row .client-main{flex:1; min-width:0;}
+  .client-row .client-name{font-family:var(--font-display); font-weight:700; font-size:15px;}
+  .client-row .client-meta{font-size:12.5px; color:#5c5648; margin-top:3px; line-height:1.6;}
+  .client-row .client-meta span{display:block;}
+  .client-actions{display:flex; flex-direction:column; gap:6px; flex-shrink:0;}
+  .client-actions .icon-btn{width:30px; height:30px;}
+  .client-add-btn{
+    width:100%; background:var(--text-dark); color:var(--paper);
+    border:none; border-radius:8px; padding:12px; font-weight:700;
+    font-size:13.5px; cursor:pointer; margin-top:4px;
+  }
+
+  .toast{
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%);
+    background:var(--text-dark); color:var(--paper); padding:10px 20px;
+    border-radius:8px; font-size:13px; opacity:0; pointer-events:none;
+    transition:opacity .25s ease; z-index:200; font-family:var(--font-mono);
+  }
+  .toast.show{opacity:1;}
+
+  .footnote{
+    text-align:center; color:var(--text-mute); font-family:var(--font-mono);
+    font-size:11px; margin-top:16px; letter-spacing:.05em;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="eyebrow">Field Route Sheet</span>
+      <h1>顧問工作台</h1>
+    </div>
+
+    <div class="side-block">
+      <h2>👤 客戶資料</h2>
+      <div id="clientQuickList"></div>
+      <button class="nav-btn secondary" id="btnManageClients" style="margin-top:10px;">管理客戶</button>
+    </div>
+
+    <div class="side-block">
+      <h2>✉️ 信件範本</h2>
+      <div id="templateQuickList"></div>
+      <button class="nav-btn secondary" id="btnManageTemplates" style="margin-top:10px;">管理範本</button>
+    </div>
+
+    <div class="side-block">
+      <h2>⏰ 提醒事項</h2>
+      <div id="reminderList"></div>
+    </div>
+
+    <div class="side-block">
+      <h2 id="calLabel">本週</h2>
+      <div class="mini-cal" id="miniCal"></div>
+    </div>
+
+    <div class="side-block">
+      <h2>本週統計</h2>
+      <div class="stat-row"><span>到府拜訪</span><span class="num" id="statOnsite">0</span></div>
+      <div class="stat-row"><span>線上輔導</span><span class="num" id="statOnline">0</span></div>
+      <div class="stat-row"><span>已完成站點</span><span class="num" id="statDone">0</span></div>
+      <div class="stat-row"><span>教育訓練完成</span><span class="num" id="statTraining">0</span></div>
+      <div class="stat-row"><span>雜務代辦完成</span><span class="num" id="statChore">0</span></div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="nav-btn" id="btnAddStopSide">＋ 新增行程站點</button>
+      <button class="nav-btn secondary" id="btnToday">回到今天</button>
+    </div>
+  </aside>
+
+  <main>
+    <div style="width:100%; max-width:760px;">
+      <div class="ticket">
+        <div class="ticket-head">
+          <div>
+            <div class="eyebrow" id="eyebrowDate">TODAY'S ROUTE</div>
+            <div class="date-nav" style="margin-top:6px;">
+              <button id="prevDay">‹</button>
+              <div>
+                <h2 id="mainDate">—</h2>
+                <div class="weekday" id="weekday">—</div>
+              </div>
+              <button id="nextDay">›</button>
+            </div>
+          </div>
+          <button class="add-stop-btn" id="btnAddStopMain">＋ 新增站點</button>
+        </div>
+        <div class="perf"></div>
+        <div class="stops" id="stopsList"></div>
+        <div class="perf"></div>
+        <div class="training-section">
+          <h3>🗂️ 空檔待辦事項</h3>
+          <div class="filter-row" id="filterRow">
+            <button class="filter-btn active" data-filter="all">全部</button>
+            <button class="filter-btn" data-filter="training">🎬 教育訓練</button>
+            <button class="filter-btn" data-filter="chore">📋 雜務代辦</button>
+          </div>
+          <div id="trainingList"></div>
+          <div class="training-add">
+            <select id="itemCategory">
+              <option value="training">🎬 教育訓練</option>
+              <option value="chore">📋 雜務代辦</option>
+            </select>
+            <input type="text" id="trainingInput" placeholder="例如：模組進階教學 Ch.3　或　整理本週報帳單據">
+            <button id="btnAddTraining">加入</button>
+          </div>
+        </div>
+      </div>
+      <div class="footnote">資料自動儲存在此裝置 · 可依日期切換查看歷史行程</div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>新增行程站點</h3>
+    <div class="field">
+      <label>時間</label>
+      <input type="time" id="inpTime" value="09:00">
+    </div>
+    <div class="field">
+      <label>客戶 / 對象名稱</label>
+      <input type="text" id="inpClient" list="clientDatalist" placeholder="例如：大成貿易有限公司（有存過的客戶會自動帶出）">
+      <datalist id="clientDatalist"></datalist>
+    </div>
+    <div class="field">
+      <label>類型</label>
+      <div class="type-choice">
+        <label><input type="radio" name="stopType" value="onsite" checked> 🚗 到府輔導</label>
+        <label><input type="radio" name="stopType" value="online"> 💻 線上輔導</label>
+        <label><input type="radio" name="stopType" value="training"> 📚 內部教育</label>
+      </div>
+      <div class="field-hint" id="typeHint">系統將自動建立提醒：5天前寄送會議通知信；線上輔導需於會議「前」完成備忘錄。</div>
+    </div>
+    <div class="field">
+      <label>備註（地址、聯絡人、輔導重點...）</label>
+      <textarea id="inpNote" rows="3" placeholder="選填"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btnCancel">取消</button>
+      <button class="btn-save" id="btnSave">儲存站點</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="tplManagerOverlay">
+  <div class="modal" style="max-width:520px;">
+    <h3>✉️ 信件範本管理</h3>
+    <div id="tplManagerList"></div>
+    <button class="tpl-add-btn" id="btnNewTemplate">＋ 新增範本</button>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btnCloseTplManager">關閉</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="tplEditOverlay">
+  <div class="modal">
+    <h3 id="tplEditTitle">新增信件範本</h3>
+    <div class="field">
+      <label>範本名稱</label>
+      <input type="text" id="tplName" placeholder="例如：會議通知信（線上）">
+    </div>
+    <div class="field">
+      <label>適用對象</label>
+      <div class="type-choice">
+        <label><input type="radio" name="tplType" value="notice" checked> 📨 會議通知信</label>
+        <label><input type="radio" name="tplType" value="memo"> 📝 輔導備忘錄</label>
+        <label><input type="radio" name="tplType" value="other"> 📄 其他</label>
+      </div>
+    </div>
+    <div class="field">
+      <label>主旨</label>
+      <input type="text" id="tplSubject" placeholder="例如：【會議通知】{client} ERP輔導會議時間確認">
+    </div>
+    <div class="field">
+      <label>信件內容</label>
+      <textarea id="tplBody" rows="7" placeholder="親愛的 {client} 您好，&#10;&#10;本次輔導時間為 {date} {time}（{type}）..."></textarea>
+      <div class="field-hint">可使用變數：{client} 客戶名稱、{date} 日期、{time} 時間、{type} 輔導類型，複製時會自動帶入該站點的實際資料。</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btnCancelTpl">取消</button>
+      <button class="btn-save" id="btnSaveTpl">儲存範本</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="clientManagerOverlay">
+  <div class="modal" style="max-width:520px;">
+    <h3>👤 客戶資料管理</h3>
+    <div id="clientManagerList"></div>
+    <button class="client-add-btn" id="btnNewClient">＋ 新增客戶</button>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btnCloseClientManager">關閉</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="clientEditOverlay">
+  <div class="modal">
+    <h3 id="clientEditTitle">新增客戶</h3>
+    <div class="field">
+      <label>客戶名稱</label>
+      <input type="text" id="clientName" placeholder="例如：大成貿易有限公司">
+    </div>
+    <div class="field">
+      <label>聯絡人</label>
+      <input type="text" id="clientContact" placeholder="例如：王經理">
+    </div>
+    <div class="field">
+      <label>電話</label>
+      <input type="text" id="clientPhone" placeholder="例如：02-1234-5678 分機 12">
+    </div>
+    <div class="field">
+      <label>地址</label>
+      <input type="text" id="clientAddress" placeholder="到府輔導用，例如：台北市中山區OO路OO號">
+    </div>
+    <div class="field">
+      <label>備註</label>
+      <textarea id="clientNotes" rows="3" placeholder="例如：使用模組、慣用聯絡方式、其他注意事項"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btnCancelClient">取消</button>
+      <button class="btn-save" id="btnSaveClient">儲存客戶</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  // 本機儲存 polyfill：讓這個檔案下載後直接用瀏覽器開啟也能存資料。
+  // 若在 Claude 網頁/App 內開啟且已提供 window.storage，則優先使用該版本；
+  // 否則自動改用瀏覽器的 localStorage（僅存在你這台電腦、這個瀏覽器裡）。
+  if(!window.storage){
+    const LS_PREFIX = 'erp_route_sheet__';
+    window.storage = {
+      async get(key){
+        const raw = localStorage.getItem(LS_PREFIX + key);
+        if(raw === null) throw new Error('key not found: ' + key);
+        return { key, value: raw, shared: false };
+      },
+      async set(key, value){
+        localStorage.setItem(LS_PREFIX + key, value);
+        return { key, value, shared: false };
+      },
+      async delete(key){
+        localStorage.removeItem(LS_PREFIX + key);
+        return { key, deleted: true, shared: false };
+      },
+      async list(prefix){
+        const keys = [];
+        for(let i=0; i<localStorage.length; i++){
+          const k = localStorage.key(i);
+          if(k && k.indexOf(LS_PREFIX) === 0){
+            const realKey = k.slice(LS_PREFIX.length);
+            if(!prefix || realKey.indexOf(prefix) === 0) keys.push(realKey);
+          }
+        }
+        return { keys, prefix, shared: false };
+      }
+    };
+  }
+})();
+(function(){
+  const pad = n => String(n).padStart(2,'0');
+  const toKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const fromKey = k => { const [y,m,d] = k.split('-').map(Number); return new Date(y,m-1,d); };
+  const weekdayNames = ['週日','週一','週二','週三','週四','週五','週六'];
+  const typeLabel = {onsite:'到府輔導', online:'線上輔導', training:'內部教育'};
+
+  function addDays(date, n){
+    const d = new Date(date);
+    d.setDate(d.getDate()+n);
+    return d;
+  }
+
+  function generateTasks(type, visitDateKey){
+    if(type === 'training') return [];
+    const visitDate = fromKey(visitDateKey);
+    const noticeDate = addDays(visitDate, -5);
+    const memoLabel = type === 'online'
+      ? '準備輔導備忘錄（會議前完成）'
+      : '準備輔導備忘錄（會議後完成）';
+    return [
+      { id:'tk'+Date.now()+Math.random().toString(36).slice(2,6), kind:'notice', label:'寄送會議通知信', dueDate: toKey(noticeDate), done:false },
+      { id:'tk'+Date.now()+Math.random().toString(36).slice(2,6)+'m', kind:'memo', label: memoLabel, dueDate: toKey(visitDate), done:false }
+    ];
+  }
+
+  function taskDueClass(dueKey, done){
+    if(done) return '';
+    const todayKey = toKey(new Date());
+    if(dueKey < todayKey) return 'overdue';
+    if(dueKey === todayKey) return 'today';
+    return '';
+  }
+
+  let current = new Date();
+  let dayData = { stops: [], training: [] };
+
+  async function loadDay(dateStr){
+    try{
+      const res = await window.storage.get(`schedule:${dateStr}`, false);
+      dayData = res && res.value ? JSON.parse(res.value) : { stops: [], training: [] };
+    }catch(e){
+      dayData = { stops: [], training: [] };
+    }
+  }
+
+  async function saveDay(dateStr){
+    try{
+      await window.storage.set(`schedule:${dateStr}`, JSON.stringify(dayData), false);
+    }catch(e){ console.error('儲存失敗', e); }
+  }
+
+  function renderHeader(){
+    const key = toKey(current);
+    document.getElementById('mainDate').textContent =
+      `${current.getFullYear()}年${current.getMonth()+1}月${current.getDate()}日`;
+    document.getElementById('weekday').textContent = weekdayNames[current.getDay()];
+    const isToday = toKey(new Date()) === key;
+    document.getElementById('eyebrowDate').textContent = isToday ? "TODAY'S ROUTE" : 'ROUTE SHEET';
+  }
+
+  function renderStops(){
+    const list = document.getElementById('stopsList');
+    list.innerHTML = '';
+    if(dayData.stops.length === 0){
+      list.innerHTML = `<div class="empty-day">
+        <div class="big">今天還沒有排定行程</div>
+        <div>點選右上角「＋ 新增站點」開始安排拜訪或線上輔導</div>
+      </div>`;
+      return;
+    }
+    const sorted = [...dayData.stops].sort((a,b)=>a.time.localeCompare(b.time));
+    sorted.forEach(stop=>{
+      const el = document.createElement('div');
+      el.className = 'stop' + (stop.done ? ' done' : '');
+      el.innerHTML = `
+        <div class="time">${stop.time}</div>
+        <div class="body">
+          <div class="top-row">
+            <span class="client">${escapeHtml(stop.client)}</span>
+            <span class="tag ${stop.type}">${typeLabel[stop.type]}</span>
+          </div>
+          ${stop.note ? `<div class="note">${escapeHtml(stop.note)}</div>` : ''}
+          ${(stop.tasks && stop.tasks.length) ? `<div class="tasklist">${stop.tasks.map(t=>`
+            <div class="task-row ${t.done?'done':''}">
+              <button class="tchk ${t.done?'on':''}" data-act="taskdone" data-stopid="${stop.id}" data-taskid="${t.id}">${t.done?'✓':''}</button>
+              <span class="tlabel">${escapeHtml(t.label)}</span>
+              <span class="tdue ${taskDueClass(t.dueDate, t.done)}">${t.dueDate.slice(5).replace('-','/')}</span>
+              ${(t.kind==='notice'||t.kind==='memo') ? `<button class="tcopy" data-act="taskcopy" data-stopid="${stop.id}" data-taskid="${t.id}" title="複製對應信件範本">📋 複製</button>` : ''}
+              <button class="tdel" data-act="taskdel" data-stopid="${stop.id}" data-taskid="${t.id}" title="刪除提醒">✕</button>
+            </div>`).join('')}</div>` : ''}
+        </div>
+        <div class="stop-actions">
+          <button class="icon-btn ${stop.done?'stamped':''}" data-act="done" data-id="${stop.id}" title="標記完成">✓</button>
+          <button class="icon-btn del" data-act="del" data-id="${stop.id}" title="刪除">✕</button>
+        </div>
+        ${stop.done ? '<div class="stamp">已完成</div>' : ''}
+      `;
+      list.appendChild(el);
+    });
+  }
+
+  let currentFilter = 'all';
+  const categoryLabel = { training:'🎬 教育訓練', chore:'📋 雜務代辦' };
+
+  function renderTraining(){
+    const list = document.getElementById('trainingList');
+    list.innerHTML = '';
+    const all = dayData.training || [];
+    const items = currentFilter === 'all' ? all : all.filter(i => (i.category||'training') === currentFilter);
+    if(all.length === 0){
+      list.innerHTML = `<div style="color:#8a8371; font-size:13px; padding:6px 2px;">尚無安排，沒有客戶時可以在這裡加入要看的教學影片，或要處理的雜務代辦</div>`;
+      return;
+    }
+    if(items.length === 0){
+      list.innerHTML = `<div style="color:#8a8371; font-size:13px; padding:6px 2px;">這個分類目前沒有項目</div>`;
+      return;
+    }
+    items.forEach(item=>{
+      const cat = item.category || 'training';
+      const el = document.createElement('div');
+      el.className = 'training-item' + (item.done ? ' done' : '');
+      el.innerHTML = `
+        <button class="icon-btn ${item.done?'stamped':''}" data-act="tdone" data-id="${item.id}" title="標記已完成" style="width:26px;height:26px;">✓</button>
+        <span class="tag ${cat}">${categoryLabel[cat]}</span>
+        <span class="t-title">${escapeHtml(item.title)}</span>
+        <button class="icon-btn del" data-act="tdel" data-id="${item.id}" title="刪除" style="width:26px;height:26px;">✕</button>
+      `;
+      list.appendChild(el);
+    });
+  }
+
+  document.getElementById('filterRow').addEventListener('click', (e)=>{
+    const btn = e.target.closest('.filter-btn');
+    if(!btn) return;
+    currentFilter = btn.dataset.filter;
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.toggle('active', b===btn));
+    renderTraining();
+  });
+
+  function escapeHtml(s){
+    const d = document.createElement('div');
+    d.textContent = s || '';
+    return d.innerHTML;
+  }
+
+  async function renderAll(){
+    renderHeader();
+    renderStops();
+    renderTraining();
+    renderMiniCal();
+    await renderWeekStats();
+    await renderReminders();
+  }
+
+  // ---- reminders (scans all saved days for due/overdue/upcoming tasks) ----
+  async function collectReminders(){
+    let keys = [];
+    try{
+      const res = await window.storage.list('schedule:', false);
+      keys = res && res.keys ? res.keys : [];
+    }catch(e){ keys = []; }
+    const items = [];
+    for(const key of keys){
+      let data;
+      try{
+        const res = await window.storage.get(key, false);
+        data = res && res.value ? JSON.parse(res.value) : null;
+      }catch(e){ data = null; }
+      if(!data) continue;
+      const dateKey = key.replace('schedule:','');
+      (data.stops||[]).forEach(stop=>{
+        (stop.tasks||[]).forEach(t=>{
+          if(t.done) return;
+          items.push({ dateKey, stopId: stop.id, taskId: t.id, client: stop.client, label: t.label, dueDate: t.dueDate });
+        });
+      });
+    }
+    const cutoff = toKey(addDays(new Date(),3));
+    const filtered = items.filter(it => it.dueDate <= cutoff);
+    filtered.sort((a,b)=> a.dueDate.localeCompare(b.dueDate));
+    return filtered.slice(0,8);
+  }
+
+  function reminderStatus(dueKey){
+    const todayKey = toKey(new Date());
+    if(dueKey < todayKey) return 'overdue';
+    if(dueKey === todayKey) return 'today';
+    return 'upcoming';
+  }
+
+  async function renderReminders(){
+    const box = document.getElementById('reminderList');
+    const items = await collectReminders();
+    if(items.length === 0){
+      box.innerHTML = `<div class="reminder-empty">目前沒有待處理的提醒 🎉</div>`;
+      return;
+    }
+    box.innerHTML = items.map(it=>{
+      const st = reminderStatus(it.dueDate);
+      const dateDisp = it.dueDate.slice(5).replace('-','/');
+      return `<div class="reminder-item">
+        <button class="rchk" data-datekey="${it.dateKey}" data-stopid="${it.stopId}" data-taskid="${it.taskId}" title="標記完成"></button>
+        <div class="rbody" data-jump="${it.dateKey}">
+          <span class="rclient">${escapeHtml(it.client)}</span>
+          <span class="rlabel">${escapeHtml(it.label)}</span>
+          <span class="rdate ${st}">${dateDisp}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('reminderList').addEventListener('click', async (e)=>{
+    const chk = e.target.closest('.rchk');
+    const body = e.target.closest('.rbody');
+    if(chk){
+      const dateKey = chk.dataset.datekey, stopId = chk.dataset.stopid, taskId = chk.dataset.taskid;
+      let data;
+      try{
+        const res = await window.storage.get(`schedule:${dateKey}`, false);
+        data = res && res.value ? JSON.parse(res.value) : { stops:[], training:[] };
+      }catch(err){ data = { stops:[], training:[] }; }
+      const stop = data.stops.find(s=>s.id===stopId);
+      if(stop){
+        const t = (stop.tasks||[]).find(x=>x.id===taskId);
+        if(t) t.done = true;
+      }
+      try{ await window.storage.set(`schedule:${dateKey}`, JSON.stringify(data), false); }catch(err){}
+      if(toKey(current) === dateKey){
+        dayData = data;
+        renderStops();
+      }
+      await renderReminders();
+      await renderWeekStats();
+      return;
+    }
+    if(body){
+      const dateKey = body.dataset.jump;
+      current = fromKey(dateKey);
+      await loadDay(dateKey);
+      await renderAll();
+    }
+  });
+
+  // ---- mini calendar (current week) ----
+  function getWeekStart(d){
+    const day = d.getDay(); // 0 Sun
+    const diff = (day === 0 ? -6 : 1) - day; // Monday start
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diff);
+    monday.setHours(0,0,0,0);
+    return monday;
+  }
+
+  function renderMiniCal(){
+    const cal = document.getElementById('miniCal');
+    cal.innerHTML = '';
+    const labels = ['一','二','三','四','五','六','日'];
+    labels.forEach(l=>{
+      const d = document.createElement('div');
+      d.className='d'; d.textContent=l;
+      cal.appendChild(d);
+    });
+    const monday = getWeekStart(current);
+    document.getElementById('calLabel').textContent =
+      `本週 ${monday.getMonth()+1}/${monday.getDate()} 起`;
+    for(let i=0;i<7;i++){
+      const d = new Date(monday);
+      d.setDate(monday.getDate()+i);
+      const btn = document.createElement('button');
+      btn.textContent = d.getDate();
+      if(toKey(d) === toKey(new Date())) btn.classList.add('today');
+      if(toKey(d) === toKey(current)) btn.classList.add('sel');
+      btn.addEventListener('click', async ()=>{
+        current = d;
+        await loadDay(toKey(current));
+        await renderAll();
+      });
+      cal.appendChild(btn);
+    }
+  }
+
+  async function renderWeekStats(){
+    const monday = getWeekStart(current);
+    let onsite=0, online=0, done=0, training=0, chore=0;
+    for(let i=0;i<7;i++){
+      const d = new Date(monday);
+      d.setDate(monday.getDate()+i);
+      const key = toKey(d);
+      let data;
+      try{
+        const res = await window.storage.get(`schedule:${key}`, false);
+        data = res && res.value ? JSON.parse(res.value) : { stops: [], training: [] };
+      }catch(e){
+        data = { stops: [], training: [] };
+      }
+      data.stops.forEach(s=>{
+        if(s.type==='onsite') onsite++;
+        if(s.type==='online') online++;
+        if(s.done) done++;
+      });
+      (data.training||[]).forEach(t=>{
+        if(!t.done) return;
+        if((t.category||'training') === 'chore') chore++;
+        else training++;
+      });
+    }
+    document.getElementById('statOnsite').textContent = onsite;
+    document.getElementById('statOnline').textContent = online;
+    document.getElementById('statDone').textContent = done;
+    document.getElementById('statTraining').textContent = training;
+    document.getElementById('statChore').textContent = chore;
+  }
+
+  // ---- modal ----
+  const overlay = document.getElementById('modalOverlay');
+  function openModal(){
+    document.getElementById('inpTime').value = '09:00';
+    document.getElementById('inpClient').value = '';
+    document.getElementById('inpNote').value = '';
+    document.querySelector('input[name="stopType"][value="onsite"]').checked = true;
+    overlay.classList.add('open');
+    setTimeout(()=>document.getElementById('inpClient').focus(), 50);
+  }
+  function closeModal(){ overlay.classList.remove('open'); }
+
+  document.getElementById('btnAddStopMain').addEventListener('click', openModal);
+  document.getElementById('btnAddStopSide').addEventListener('click', openModal);
+  document.getElementById('btnCancel').addEventListener('click', closeModal);
+  overlay.addEventListener('click', e=>{ if(e.target === overlay) closeModal(); });
+
+  document.getElementById('btnSave').addEventListener('click', async ()=>{
+    const time = document.getElementById('inpTime').value || '09:00';
+    const client = document.getElementById('inpClient').value.trim();
+    const note = document.getElementById('inpNote').value.trim();
+    const type = document.querySelector('input[name="stopType"]:checked').value;
+    if(!client){
+      document.getElementById('inpClient').focus();
+      return;
+    }
+    dayData.stops.push({
+      id: 's'+Date.now()+Math.random().toString(36).slice(2,6),
+      time, client, note, type, done:false,
+      tasks: generateTasks(type, toKey(current))
+    });
+    await saveDay(toKey(current));
+    closeModal();
+    await renderAll();
+  });
+
+  // ---- type hint text update ----
+  document.querySelectorAll('input[name="stopType"]').forEach(r=>{
+    r.addEventListener('change', ()=>{
+      const v = document.querySelector('input[name="stopType"]:checked').value;
+      const hint = document.getElementById('typeHint');
+      if(v === 'online'){
+        hint.textContent = '系統將自動建立提醒：5天前寄送會議通知信；輔導「前」需完成備忘錄。';
+      } else if(v === 'onsite'){
+        hint.textContent = '系統將自動建立提醒：5天前寄送會議通知信；輔導「後」需完成備忘錄。';
+      } else {
+        hint.textContent = '內部教育訓練不會建立客戶通知與備忘錄提醒。';
+      }
+    });
+  });
+
+  // ---- stop actions (mark done / delete stop / task done / delete task) ----
+  document.getElementById('stopsList').addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button[data-act]');
+    if(!btn) return;
+    const act = btn.dataset.act;
+    if(act === 'taskcopy'){
+      const stop = dayData.stops.find(x=>x.id===btn.dataset.stopid);
+      if(stop){
+        const task = (stop.tasks||[]).find(x=>x.id===btn.dataset.taskid);
+        if(task) copyTaskTemplate(stop, task);
+      }
+      return;
+    }
+    if(act === 'done'){
+      const s = dayData.stops.find(x=>x.id===btn.dataset.id);
+      if(s) s.done = !s.done;
+    } else if(act === 'del'){
+      dayData.stops = dayData.stops.filter(x=>x.id!==btn.dataset.id);
+    } else if(act === 'taskdone' || act === 'taskdel'){
+      const stop = dayData.stops.find(x=>x.id===btn.dataset.stopid);
+      if(stop){
+        if(act === 'taskdone'){
+          const t = (stop.tasks||[]).find(x=>x.id===btn.dataset.taskid);
+          if(t) t.done = !t.done;
+        } else {
+          stop.tasks = (stop.tasks||[]).filter(x=>x.id!==btn.dataset.taskid);
+        }
+      }
+    }
+    await saveDay(toKey(current));
+    await renderAll();
+  });
+
+  // ---- training / chore actions ----
+  document.getElementById('btnAddTraining').addEventListener('click', async ()=>{
+    const inp = document.getElementById('trainingInput');
+    const title = inp.value.trim();
+    const category = document.getElementById('itemCategory').value;
+    if(!title) return;
+    dayData.training.push({ id:'t'+Date.now()+Math.random().toString(36).slice(2,6), title, category, done:false });
+    inp.value='';
+    await saveDay(toKey(current));
+    await renderAll();
+  });
+  document.getElementById('trainingInput').addEventListener('keydown', e=>{
+    if(e.key === 'Enter') document.getElementById('btnAddTraining').click();
+  });
+
+  document.getElementById('trainingList').addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button[data-act]');
+    if(!btn) return;
+    const id = btn.dataset.id;
+    if(btn.dataset.act === 'tdone'){
+      const t = dayData.training.find(x=>x.id===id);
+      if(t) t.done = !t.done;
+    } else if(btn.dataset.act === 'tdel'){
+      dayData.training = dayData.training.filter(x=>x.id!==id);
+    }
+    await saveDay(toKey(current));
+    await renderAll();
+  });
+
+  // ---- day navigation ----
+  document.getElementById('prevDay').addEventListener('click', async ()=>{
+    current.setDate(current.getDate()-1);
+    await loadDay(toKey(current));
+    await renderAll();
+  });
+  document.getElementById('nextDay').addEventListener('click', async ()=>{
+    current.setDate(current.getDate()+1);
+    await loadDay(toKey(current));
+    await renderAll();
+  });
+  document.getElementById('btnToday').addEventListener('click', async ()=>{
+    current = new Date();
+    await loadDay(toKey(current));
+    await renderAll();
+  });
+
+  // ---- copy helper + toast ----
+  function copyText(text){
+    let ok = false;
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+    }catch(e){ ok = false; }
+    if(!ok && navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).catch(()=>{});
+    }
+    return ok;
+  }
+
+  let toastTimer = null;
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> t.classList.remove('show'), 1800);
+  }
+
+  function fillPlaceholders(text, ctx){
+    return (text||'')
+      .replaceAll('{client}', ctx.client || '')
+      .replaceAll('{date}', ctx.date || '')
+      .replaceAll('{time}', ctx.time || '')
+      .replaceAll('{type}', ctx.type || '');
+  }
+
+  // ---- templates: load/save ----
+  let templates = [];
+  const tplTypeLabel = { notice:'📨 會議通知信', memo:'📝 輔導備忘錄', other:'📄 其他' };
+
+  async function loadTemplates(){
+    try{
+      const res = await window.storage.get('templates', false);
+      templates = res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){ templates = []; }
+  }
+  async function saveTemplates(){
+    try{ await window.storage.set('templates', JSON.stringify(templates), false); }catch(e){}
+  }
+
+  function renderTemplateQuickList(){
+    const box = document.getElementById('templateQuickList');
+    if(templates.length === 0){
+      box.innerHTML = `<div class="template-empty-side">尚未建立範本，點下方「管理範本」新增</div>`;
+      return;
+    }
+    box.innerHTML = templates.map(tpl=>`
+      <div class="template-quick-item">
+        <span class="tname">${escapeHtml(tpl.name)}</span>
+        <button data-act="qcopy" data-id="${tpl.id}" title="複製原始範本">📋</button>
+      </div>
+    `).join('');
+  }
+
+  function renderTemplateManager(){
+    const box = document.getElementById('tplManagerList');
+    if(templates.length === 0){
+      box.innerHTML = `<div class="reminder-empty">尚未建立任何範本，點下方「＋ 新增範本」開始。</div>`;
+      return;
+    }
+    box.innerHTML = templates.map(tpl=>`
+      <div class="tpl-row">
+        <div class="tpl-main">
+          <div class="tpl-name">${escapeHtml(tpl.name)} <span class="tag ${tpl.type==='notice'?'onsite':tpl.type==='memo'?'online':'training'}">${tplTypeLabel[tpl.type]}</span></div>
+          <div class="tpl-subject">${escapeHtml(tpl.subject)}</div>
+          <div class="tpl-preview">${escapeHtml(tpl.body)}</div>
+        </div>
+        <div class="tpl-actions">
+          <button class="icon-btn" data-act="mcopy" data-id="${tpl.id}" title="複製">📋</button>
+          <button class="icon-btn" data-act="medit" data-id="${tpl.id}" title="編輯">✎</button>
+          <button class="icon-btn del" data-act="mdel" data-id="${tpl.id}" title="刪除">✕</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function rawTemplateText(tpl){
+    return `主旨：${tpl.subject}\n\n${tpl.body}`;
+  }
+
+  function copyTaskTemplate(stop, task){
+    const matches = templates.filter(t => t.type === task.kind);
+    const tpl = matches[0] || templates[0];
+    if(!tpl){
+      showToast('尚未建立信件範本，請先到「信件範本」新增');
+      return;
+    }
+    const ctx = {
+      client: stop.client,
+      date: `${current.getFullYear()}/${pad(current.getMonth()+1)}/${pad(current.getDate())}`,
+      time: stop.time,
+      type: typeLabel[stop.type]
+    };
+    const text = `主旨：${fillPlaceholders(tpl.subject, ctx)}\n\n${fillPlaceholders(tpl.body, ctx)}`;
+    copyText(text);
+    showToast(`已複製「${tpl.name}」並帶入 ${stop.client} 的資料`);
+  }
+
+  // ---- template modals ----
+  const tplManagerOverlay = document.getElementById('tplManagerOverlay');
+  const tplEditOverlay = document.getElementById('tplEditOverlay');
+  let editingTplId = null;
+
+  document.getElementById('btnManageTemplates').addEventListener('click', ()=>{
+    renderTemplateManager();
+    tplManagerOverlay.classList.add('open');
+  });
+  document.getElementById('btnCloseTplManager').addEventListener('click', ()=> tplManagerOverlay.classList.remove('open'));
+  tplManagerOverlay.addEventListener('click', e=>{ if(e.target === tplManagerOverlay) tplManagerOverlay.classList.remove('open'); });
+
+  function openTplEdit(tpl){
+    editingTplId = tpl ? tpl.id : null;
+    document.getElementById('tplEditTitle').textContent = tpl ? '編輯信件範本' : '新增信件範本';
+    document.getElementById('tplName').value = tpl ? tpl.name : '';
+    document.getElementById('tplSubject').value = tpl ? tpl.subject : '';
+    document.getElementById('tplBody').value = tpl ? tpl.body : '';
+    document.querySelector(`input[name="tplType"][value="${tpl ? tpl.type : 'notice'}"]`).checked = true;
+    tplEditOverlay.classList.add('open');
+    setTimeout(()=>document.getElementById('tplName').focus(), 50);
+  }
+  document.getElementById('btnNewTemplate').addEventListener('click', ()=> openTplEdit(null));
+  document.getElementById('btnCancelTpl').addEventListener('click', ()=> tplEditOverlay.classList.remove('open'));
+  tplEditOverlay.addEventListener('click', e=>{ if(e.target === tplEditOverlay) tplEditOverlay.classList.remove('open'); });
+
+  document.getElementById('btnSaveTpl').addEventListener('click', async ()=>{
+    const name = document.getElementById('tplName').value.trim();
+    const subject = document.getElementById('tplSubject').value.trim();
+    const body = document.getElementById('tplBody').value.trim();
+    const type = document.querySelector('input[name="tplType"]:checked').value;
+    if(!name){ document.getElementById('tplName').focus(); return; }
+    if(editingTplId){
+      const tpl = templates.find(t=>t.id===editingTplId);
+      if(tpl){ tpl.name=name; tpl.subject=subject; tpl.body=body; tpl.type=type; }
+    } else {
+      templates.push({ id:'tpl'+Date.now()+Math.random().toString(36).slice(2,6), name, subject, body, type });
+    }
+    await saveTemplates();
+    tplEditOverlay.classList.remove('open');
+    renderTemplateManager();
+    renderTemplateQuickList();
+  });
+
+  document.getElementById('tplManagerList').addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button[data-act]');
+    if(!btn) return;
+    const tpl = templates.find(t=>t.id===btn.dataset.id);
+    if(!tpl) return;
+    if(btn.dataset.act === 'mcopy'){
+      copyText(rawTemplateText(tpl));
+      showToast(`已複製「${tpl.name}」`);
+    } else if(btn.dataset.act === 'medit'){
+      openTplEdit(tpl);
+    } else if(btn.dataset.act === 'mdel'){
+      templates = templates.filter(t=>t.id!==tpl.id);
+      await saveTemplates();
+      renderTemplateManager();
+      renderTemplateQuickList();
+    }
+  });
+
+  document.getElementById('templateQuickList').addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-act="qcopy"]');
+    if(!btn) return;
+    const tpl = templates.find(t=>t.id===btn.dataset.id);
+    if(!tpl) return;
+    copyText(rawTemplateText(tpl));
+    showToast(`已複製「${tpl.name}」`);
+  });
+
+  // ---- clients: load/save ----
+  let clients = [];
+
+  async function loadClients(){
+    try{
+      const res = await window.storage.get('clients', false);
+      clients = res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){ clients = []; }
+  }
+  async function saveClients(){
+    try{ await window.storage.set('clients', JSON.stringify(clients), false); }catch(e){}
+  }
+
+  function renderClientQuickList(){
+    const box = document.getElementById('clientQuickList');
+    if(clients.length === 0){
+      box.innerHTML = `<div class="client-empty-side">尚未建立客戶資料，點下方「管理客戶」新增</div>`;
+      return;
+    }
+    box.innerHTML = clients.map(c=>`
+      <div class="client-quick-item">
+        <span class="cname">${escapeHtml(c.name)}${c.phone ? `<span class="cphone">${escapeHtml(c.phone)}</span>` : ''}</span>
+        <button data-act="qedit" data-id="${c.id}" title="編輯">✎</button>
+      </div>
+    `).join('');
+    // sync datalist for autocomplete on the add-stop form
+    const dl = document.getElementById('clientDatalist');
+    if(dl){
+      dl.innerHTML = clients.map(c=>`<option value="${escapeHtml(c.name)}"></option>`).join('');
+    }
+  }
+
+  function renderClientManager(){
+    const box = document.getElementById('clientManagerList');
+    if(clients.length === 0){
+      box.innerHTML = `<div class="reminder-empty">尚未建立任何客戶資料，點下方「＋ 新增客戶」開始。</div>`;
+      return;
+    }
+    box.innerHTML = clients.map(c=>`
+      <div class="client-row">
+        <div class="client-main">
+          <div class="client-name">${escapeHtml(c.name)}</div>
+          <div class="client-meta">
+            ${c.contact ? `<span>聯絡人：${escapeHtml(c.contact)}</span>` : ''}
+            ${c.phone ? `<span>電話：${escapeHtml(c.phone)}</span>` : ''}
+            ${c.address ? `<span>地址：${escapeHtml(c.address)}</span>` : ''}
+            ${c.notes ? `<span>備註：${escapeHtml(c.notes)}</span>` : ''}
+          </div>
+        </div>
+        <div class="client-actions">
+          <button class="icon-btn" data-act="cedit" data-id="${c.id}" title="編輯">✎</button>
+          <button class="icon-btn del" data-act="cdel" data-id="${c.id}" title="刪除">✕</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  const clientManagerOverlay = document.getElementById('clientManagerOverlay');
+  const clientEditOverlay = document.getElementById('clientEditOverlay');
+  let editingClientId = null;
+
+  document.getElementById('btnManageClients').addEventListener('click', ()=>{
+    renderClientManager();
+    clientManagerOverlay.classList.add('open');
+  });
+  document.getElementById('btnCloseClientManager').addEventListener('click', ()=> clientManagerOverlay.classList.remove('open'));
+  clientManagerOverlay.addEventListener('click', e=>{ if(e.target === clientManagerOverlay) clientManagerOverlay.classList.remove('open'); });
+
+  function openClientEdit(c){
+    editingClientId = c ? c.id : null;
+    document.getElementById('clientEditTitle').textContent = c ? '編輯客戶' : '新增客戶';
+    document.getElementById('clientName').value = c ? c.name : '';
+    document.getElementById('clientContact').value = c ? (c.contact||'') : '';
+    document.getElementById('clientPhone').value = c ? (c.phone||'') : '';
+    document.getElementById('clientAddress').value = c ? (c.address||'') : '';
+    document.getElementById('clientNotes').value = c ? (c.notes||'') : '';
+    clientEditOverlay.classList.add('open');
+    setTimeout(()=>document.getElementById('clientName').focus(), 50);
+  }
+  document.getElementById('btnNewClient').addEventListener('click', ()=> openClientEdit(null));
+  document.getElementById('btnCancelClient').addEventListener('click', ()=> clientEditOverlay.classList.remove('open'));
+  clientEditOverlay.addEventListener('click', e=>{ if(e.target === clientEditOverlay) clientEditOverlay.classList.remove('open'); });
+
+  document.getElementById('btnSaveClient').addEventListener('click', async ()=>{
+    const name = document.getElementById('clientName').value.trim();
+    const contact = document.getElementById('clientContact').value.trim();
+    const phone = document.getElementById('clientPhone').value.trim();
+    const address = document.getElementById('clientAddress').value.trim();
+    const notes = document.getElementById('clientNotes').value.trim();
+    if(!name){ document.getElementById('clientName').focus(); return; }
+    if(editingClientId){
+      const c = clients.find(x=>x.id===editingClientId);
+      if(c){ c.name=name; c.contact=contact; c.phone=phone; c.address=address; c.notes=notes; }
+    } else {
+      clients.push({ id:'cl'+Date.now()+Math.random().toString(36).slice(2,6), name, contact, phone, address, notes });
+    }
+    await saveClients();
+    clientEditOverlay.classList.remove('open');
+    renderClientManager();
+    renderClientQuickList();
+  });
+
+  document.getElementById('clientManagerList').addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button[data-act]');
+    if(!btn) return;
+    const c = clients.find(x=>x.id===btn.dataset.id);
+    if(!c) return;
+    if(btn.dataset.act === 'cedit'){
+      openClientEdit(c);
+    } else if(btn.dataset.act === 'cdel'){
+      clients = clients.filter(x=>x.id!==c.id);
+      await saveClients();
+      renderClientManager();
+      renderClientQuickList();
+    }
+  });
+
+  document.getElementById('clientQuickList').addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-act="qedit"]');
+    if(!btn) return;
+    const c = clients.find(x=>x.id===btn.dataset.id);
+    if(!c) return;
+    renderClientManager();
+    clientManagerOverlay.classList.add('open');
+    openClientEdit(c);
+  });
+
+  // when adding a stop, if the typed client name matches a saved client and the
+  // note field is still empty, auto-fill note with their contact/address for convenience
+  document.getElementById('inpClient').addEventListener('change', ()=>{
+    const typed = document.getElementById('inpClient').value.trim();
+    const noteField = document.getElementById('inpNote');
+    if(noteField.value.trim()) return;
+    const match = clients.find(c => c.name === typed);
+    if(match){
+      const parts = [];
+      if(match.contact) parts.push(`聯絡人：${match.contact}`);
+      if(match.phone) parts.push(`電話：${match.phone}`);
+      if(match.address) parts.push(`地址：${match.address}`);
+      if(match.notes) parts.push(match.notes);
+      if(parts.length) noteField.value = parts.join('\n');
+    }
+  });
+
+  function defaultTemplates(){
+    return [
+      {
+        id:'tpl_seed_notice',
+        type:'notice',
+        name:'會議通知信（通用）',
+        subject:'【會議通知】{client} ERP輔導會議時間確認 - {date}',
+        body:'{client} 您好，\n\n來信確認本次 ERP 輔導會議時間如下：\n\n日期：{date}\n時間：{time}\n方式：{type}\n\n若時間需要調整，麻煩回信告知，我會再協助安排。\n謝謝您！'
+      },
+      {
+        id:'tpl_seed_memo',
+        type:'memo',
+        name:'輔導備忘錄',
+        subject:'{client} ERP輔導備忘錄 - {date}',
+        body:'客戶：{client}\n日期／時間：{date} {time}\n輔導方式：{type}\n\n【本次輔導重點】\n1. \n2. \n\n【客戶提出的問題／需求】\n1. \n\n【待辦事項與下次追蹤】\n1. '
+      }
+    ];
+  }
+
+  // ---- init ----
+  (async function init(){
+    await loadClients();
+    renderClientQuickList();
+    await loadTemplates();
+    if(templates.length === 0){
+      templates = defaultTemplates();
+      await saveTemplates();
+    }
+    renderTemplateQuickList();
+    await loadDay(toKey(current));
+    await renderAll();
+  })();
+})();
+</script>
+</body>
+</html>
